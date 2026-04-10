@@ -22,7 +22,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            height: 100dvh;
+            height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -77,7 +77,7 @@
             color: #94a3b8;
         }
 
-        /* Bottom Panel (Controls) */
+        /* Control Panel (Bottom on Mobile) */
         #controls {
             background-color: var(--panel-bg);
             backdrop-filter: blur(10px);
@@ -86,7 +86,7 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1rem;
             flex: 1;
         }
 
@@ -181,13 +181,15 @@
             color: var(--accent-color);
         }
 
-        /* Top Panel (Visualization) */
+        /* Output Panel (Top on Mobile) */
         #visualization {
             position: relative;
             display: grid;
-            grid-template-rows: 1fr 100px;
-            height: 50dvh;
+            grid-template-rows: 2fr 1fr;
+            height: 45vh;
+            min-height: 250px;
             flex-shrink: 0;
+            order: -1;
         }
 
         #orbit-container {
@@ -263,50 +265,10 @@
             background: var(--danger-color);
             color: white;
         }
-
-        h1 {
-            font-size: 1.25rem;
-        }
-
-        .flex-col {
-            gap: 0.25rem;
-        }
-
-        .control-group {
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-        }
-
-        #orbit-container {
-            touch-action: none;
-            /* Important for touch gestures */
-        }
     </style>
 </head>
 
 <body>
-
-    <div id="visualization">
-        <div id="orbit-container">
-            <canvas id="canvas-grid"></canvas>
-            <canvas id="canvas-strobe"></canvas>
-            <canvas id="canvas-main"></canvas>
-        </div>
-        <div id="graph-container">
-            <div class="graph-panel">
-                <div class="graph-label">距離 r(t)</div>
-                <canvas id="graph-x"></canvas>
-            </div>
-            <div class="graph-panel">
-                <div class="graph-label">エネルギー E(t)</div>
-                <canvas id="graph-e"></canvas>
-            </div>
-            <div class="graph-panel">
-                <div class="graph-label">角運動量 L(t)</div>
-                <canvas id="graph-l"></canvas>
-            </div>
-        </div>
-    </div>
 
     <div id="controls">
         <div>
@@ -351,22 +313,38 @@
 
         <div class="control-group">
             <label class="control-label">パラメータ (SI Units)</label>
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-3">
                 <div class="flex justify-between items-center">
                     <span class="text-sm">指数 n</span>
-                    <input type="number" id="inp-n" value="1" step="0.5" style="width: 80px;">
+                    <div class="flex items-center gap-1">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-n', -0.5)">-</button>
+                        <input type="number" id="inp-n" value="1.0" step="0.5" style="width: 65px; text-align: center;">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-n', 0.5)">+</button>
+                    </div>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-sm">係数 A (N/mⁿ)</span>
-                    <input type="number" id="inp-A" value="40" step="1" style="width: 80px;">
+                    <span class="text-sm">係数 A</span>
+                    <div class="flex items-center gap-1">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-A', -1.0)">-</button>
+                        <input type="number" id="inp-A" value="25.0" step="1.0" style="width: 65px; text-align: center;">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-A', 1.0)">+</button>
+                    </div>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm">質量 m (kg)</span>
-                    <input type="number" id="inp-m" value="1.0" step="0.1" style="width: 80px;">
+                    <div class="flex items-center gap-1">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-m', -0.2)">-</button>
+                        <input type="number" id="inp-m" value="1.0" step="0.2" style="width: 65px; text-align: center;">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-m', 0.2)">+</button>
+                    </div>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-sm">刻み時間 dt (s)</span>
-                    <input type="number" id="inp-dt" value="0.005" step="0.001" style="width: 80px;">
+                    <span class="text-sm">刻み時間 dt</span>
+                    <div class="flex items-center gap-1">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-dt', -0.001)">-</button>
+                        <input type="number" id="inp-dt" value="0.001" step="0.001" style="width: 65px; text-align: center;">
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-dt', 0.001)">+</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -402,7 +380,7 @@
                     <span class="text-sm">ストロボ間隔 (Step)</span>
                     <span id="strobe-val" class="text-xs text-muted">20</span>
                 </div>
-                <input type="range" id="inp-strobe" min="5" max="200" step="1" value="20">
+                <input type="range" id="inp-strobe" min="5" max="2000" step="1" value="20">
 
                 <div class="flex justify-between items-center">
                     <span class="text-sm">描画制限 (点数)</span>
@@ -433,6 +411,28 @@
         </div>
     </div>
 
+    <div id="visualization">
+        <div id="orbit-container">
+            <canvas id="canvas-grid"></canvas>
+            <canvas id="canvas-strobe"></canvas>
+            <canvas id="canvas-main"></canvas>
+        </div>
+        <div id="graph-container">
+            <div class="graph-panel">
+                <div class="graph-label">位置 x(t)</div>
+                <canvas id="graph-x"></canvas>
+            </div>
+            <div class="graph-panel">
+                <div class="graph-label">エネルギー E(t)</div>
+                <canvas id="graph-e"></canvas>
+            </div>
+            <div class="graph-panel">
+                <div class="graph-label">角運動量 L(t)</div>
+                <canvas id="graph-l"></canvas>
+            </div>
+        </div>
+    </div>
+
     <script>
         class Vector2D {
             constructor(x, y) {
@@ -457,9 +457,9 @@
         const AppState = {
             isAttraction: true,
             n: 1,
-            A: 40.0,
+            A: 25.0,
             m: 1.0,
-            dt: 0.005, // Small dt
+            dt: 0.001, // Small dt
 
             initialPos: new Vector2D(2.0, 0),
             initialVel: new Vector2D(0, 3.0),
@@ -819,15 +819,22 @@
             }
 
             drawAll() {
-                this.drawGraph(this.ctxX, AppState.trajectory, (s) => s.pos.mag(), '#38bdf8');
+                const xValues = AppState.trajectory.map((s) => s.pos.x);
+                const initialAbsX = Math.abs(AppState.initialPos.x);
+                const observedMaxAbsX = xValues.length > 0 ? Math.max(...xValues.map((x) => Math.abs(x))) : initialAbsX;
+                const xScaleMax = Math.max(initialAbsX * 1.2, observedMaxAbsX * 1.05, 1.0);
+
+                // x(t) は y 軸中心の対称スケールで描画し、
+                // 条件間で x 振幅の絶対量を比較しやすくする。
+                this.drawGraph(this.ctxX, AppState.trajectory, (s) => s.pos.x, '#38bdf8', {
+                    fixedMin: -xScaleMax,
+                    fixedMax: xScaleMax,
+                });
 
                 // User Request: Fix E-t graph scale to avoid amplifying small errors.
                 // We use max Kinetic Energy as a reference scale.
                 let maxK = 0;
-                // We can estimate max K roughly or scan. Since we scan for min/max anyway inside drawGraph, 
-                // we scan here for K. 
-                // Optimization: simple loop.
-                for (let i = 0; i < AppState.trajectory.length; i += 10) { // Sampling is enough for scale
+                for (let i = 0; i < AppState.trajectory.length; i += 10) {
                     const s = AppState.trajectory[i];
                     const v = s.vel.mag();
                     const k = 0.5 * AppState.m * v * v;
@@ -835,11 +842,13 @@
                 }
                 const minEScale = maxK > 1e-9 ? maxK : 1.0;
 
-                this.drawGraph(this.ctxE, AppState.trajectory, (s) => s.E, '#22c55e', minEScale);
+                this.drawGraph(this.ctxE, AppState.trajectory, (s) => s.E, '#22c55e', {
+                    minRange: minEScale,
+                });
                 this.drawGraph(this.ctxL, AppState.trajectory, (s) => s.L, '#eab308');
             }
 
-            drawGraph(ctx, data, valueFn, color, minRange = 0) {
+            drawGraph(ctx, data, valueFn, color, options = {}) {
                 const w = ctx.canvas.width;
                 const h = ctx.canvas.height;
                 ctx.clearRect(0, 0, w, h);
@@ -852,12 +861,17 @@
                     if (v > max) max = v;
                 });
 
+                const minRange = options.minRange ?? 0;
+
                 // Apply minimum range to prevent noise amplification
                 if ((max - min) < minRange) {
                     const mid = (min + max) / 2;
                     min = mid - minRange / 2;
                     max = mid + minRange / 2;
                 }
+
+                if (Number.isFinite(options.fixedMin)) min = options.fixedMin;
+                if (Number.isFinite(options.fixedMax)) max = options.fixedMax;
 
                 if (Math.abs(max - min) < 1e-6) { max += 0.5; min -= 0.5; }
 
@@ -896,6 +910,22 @@
         const renderer = new Renderer();
         const grapher = new GraphPlotter();
 
+        function stepInput(id, delta) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let val = parseFloat(el.value) + delta;
+            
+            // 刻み幅に応じて小数点以下の桁数を決定
+            const deltaStr = Math.abs(delta).toString();
+            let decimals = 0;
+            if (deltaStr.includes('.')) {
+                decimals = deltaStr.split('.')[1].length;
+            }
+            
+            el.value = val.toFixed(decimals);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
         function updateSimulation() {
             AppState.n = parseFloat(document.getElementById('inp-n').value);
             AppState.A = parseFloat(document.getElementById('inp-A').value);
@@ -922,6 +952,10 @@
 
             renderer.drawStaticPreview();
             grapher.drawAll();
+        }
+
+        function autoSetA() {
+            // Removed
         }
 
         function reset() {
@@ -1096,38 +1130,6 @@
                 isDragging = false;
                 orbitContainer.style.cursor = 'grab';
             }
-        });
-
-        // Touch Support for Pan
-        orbitContainer.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                isDragging = true;
-                lastMouseX = e.touches[0].clientX;
-                lastMouseY = e.touches[0].clientY;
-                e.preventDefault(); // Prevent default browser scroll/zoom
-            }
-        }, { passive: false });
-
-        window.addEventListener('touchmove', (e) => {
-            if (!isDragging || e.touches.length !== 1) return;
-            const dx = e.touches[0].clientX - lastMouseX;
-            const dy = e.touches[0].clientY - lastMouseY;
-            lastMouseX = e.touches[0].clientX;
-            lastMouseY = e.touches[0].clientY;
-
-            AppState.offsetX += dx;
-            AppState.offsetY += dy;
-
-            renderer.drawGrid();
-            renderer.drawStaticPreview();
-            if (AppState.isPlaying || AppState.stepIndex > 0) {
-                renderer.drawCurrentFrame();
-            }
-            e.preventDefault();
-        }, { passive: false });
-
-        window.addEventListener('touchend', () => {
-            isDragging = false;
         });
 
         document.getElementById('btn-attract').addEventListener('click', () => {
