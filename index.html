@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中心力場シミュレーター</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --danger-color: #f43f5e;
+            --success-color: #22c55e;
+            --border-color: rgba(148, 163, 184, 0.2);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Helper Utilities */
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .gap-4 {
+            gap: 1rem;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .text-accent {
+            color: var(--accent-color);
+        }
+
+        .text-muted {
+            color: #94a3b8;
+        }
+
+        /* Bottom Panel (Controls) */
+        #controls {
+            background-color: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border-color);
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            flex: 1;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-color);
+            padding: 0.4rem;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .btn {
+            background: var(--accent-color);
+            color: #0f172a;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        /* Stats Panel */
+        #stats-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.7rem;
+        }
+
+        .stat-value {
+            color: var(--accent-color);
+        }
+
+        /* Top Panel (Visualization) */
+        #visualization {
+            position: relative;
+            display: grid;
+            grid-template-rows: 1fr 100px;
+            height: 50dvh;
+            flex-shrink: 0;
+        }
+
+        #orbit-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        #orbit-container:active {
+            cursor: grabbing;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        #graph-container {
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid var(--border-color);
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1px;
+            background-color: var(--border-color);
+        }
+
+        .graph-panel {
+            background: var(--bg-color);
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .graph-label {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            font-size: 0.75rem;
+            color: #64748b;
+            pointer-events: none;
+        }
+
+        /* Force Switch */
+        .switch-container {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+        }
+
+        .switch-option {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .switch-option.active {
+            background: var(--accent-color);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .switch-option.danger.active {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+        }
+
+        .flex-col {
+            gap: 0.25rem;
+        }
+
+        .control-group {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #orbit-container {
+            touch-action: none;
+            /* Important for touch gestures */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="visualization">
+        <div id="orbit-container">
+            <canvas id="canvas-grid"></canvas>
+            <canvas id="canvas-strobe"></canvas>
+            <canvas id="canvas-main"></canvas>
+        </div>
+        <div id="graph-container">
+            <div class="graph-panel">
+                <div class="graph-label">距離 r(t)</div>
+                <canvas id="graph-x"></canvas>
+            </div>
+            <div class="graph-panel">
+                <div class="graph-label">エネルギー E(t)</div>
+                <canvas id="graph-e"></canvas>
+            </div>
+            <div class="graph-panel">
+                <div class="graph-label">角運動量 L(t)</div>
+                <canvas id="graph-l"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div>
+            <h1>中心力場</h1>
+            <p class="text-sm" style="color: #94a3b8; margin-top: 0.25rem;">Interactive Simulator</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="control-group">
+            <label class="control-label">統計データ (Statistics)</label>
+            <div id="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-label">最小半径 r_min (m)</div>
+                    <div id="stat-rmin" class="stat-value">--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">最大半径 r_max (m)</div>
+                    <div id="stat-rmax" class="stat-value">--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">平均半径 (Avg)</div>
+                    <div id="stat-ravg" class="stat-value">--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">周期 T (s)</div>
+                    <div id="stat-period" class="stat-value">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">力の設定 (Force)</label>
+            <div class="switch-container">
+                <div id="btn-attract" class="switch-option active">引力 (Attract)</div>
+                <div id="btn-repulse" class="switch-option danger">斥力 (Repulse)</div>
+            </div>
+            <div id="formula-display"
+                style="text-align: center; font-family: monospace; padding: 0.5rem; color: var(--accent-color);">
+                F = -|A|rⁿ
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">パラメータ (SI Units)</label>
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">指数 n</span>
+                    <input type="number" id="inp-n" value="1" step="0.5" style="width: 80px;">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">係数 A (N/mⁿ)</span>
+                    <input type="number" id="inp-A" value="40" step="1" style="width: 80px;">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">質量 m (kg)</span>
+                    <input type="number" id="inp-m" value="1.0" step="0.1" style="width: 80px;">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">刻み時間 dt (s)</span>
+                    <input type="number" id="inp-dt" value="0.005" step="0.001" style="width: 80px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">初期状態 (Initial State)</label>
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">x₀ (m)</span>
+                    <input type="number" id="inp-x0" value="2.0" step="0.1" style="width: 60px;">
+                    <span class="text-sm">y₀ (m)</span>
+                    <input type="number" id="inp-y0" value="0.0" step="0.1" style="width: 60px;">
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">vx₀ (m/s)</span>
+                    <input type="number" id="inp-vx0" value="0.0" step="0.1" style="width: 60px;">
+                    <span class="text-sm">vy₀ (m/s)</span>
+                    <input type="number" id="inp-vy0" value="3.0" step="0.1" style="width: 60px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label">表示設定 (Visualization)</label>
+            <div class="flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">ズーム (Zoom)</span>
+                    <span id="zoom-val" class="text-xs text-muted">1.0x</span>
+                </div>
+                <input type="range" id="inp-zoom" min="0.1" max="5.0" step="0.1" value="1.0">
+
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-sm">ストロボ間隔 (Step)</span>
+                    <span id="strobe-val" class="text-xs text-muted">20</span>
+                </div>
+                <input type="range" id="inp-strobe" min="5" max="200" step="1" value="20">
+
+                <div class="flex justify-between items-center">
+                    <span class="text-sm">描画制限 (点数)</span>
+                    <span id="limit-val" class="text-xs text-muted">All</span>
+                </div>
+                <input type="range" id="inp-limit" min="100" max="10000" step="100" value="10000">
+                <p class="text-xs text-muted" style="margin:-4px 0 0 0;">※ 1周分のみ表示したい場合に調整</p>
+
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-sm">再生速度 (Speed)</span>
+                    <span id="speed-val" class="text-xs text-muted">0.3x</span>
+                </div>
+                <input type="range" id="inp-speed" min="0.05" max="5.0" step="0.05" value="0.3">
+
+                <button id="btn-autofit" class="btn btn-outline text-sm" style="margin-top:0.5rem;">自動フィット
+                    (Auto-Fit)</button>
+
+                <div class="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id="chk-area-velocity">
+                    <label for="chk-area-velocity" class="text-sm cursor-pointer">面積速度を表示 (Area Velocity)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-2" style="margin-top: auto;">
+            <button id="btn-anim-toggle" class="btn">アニメーション開始</button>
+            <button id="btn-reset" class="btn btn-outline">リセット</button>
+        </div>
+    </div>
+
+    <script>
+        class Vector2D {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+            add(v) { return new Vector2D(this.x + v.x, this.y + v.y); }
+            sub(v) { return new Vector2D(this.x - v.x, this.y - v.y); }
+            mult(s) { return new Vector2D(this.x * s, this.y * s); }
+            div(s) { return new Vector2D(this.x / s, this.y / s); }
+            mag() { return Math.sqrt(this.x ** 2 + this.y ** 2); }
+            normalize() {
+                const m = this.mag();
+                return m === 0 ? new Vector2D(0, 0) : this.div(m);
+            }
+            dot(v) { return this.x * v.x + this.y * v.y; }
+            cross(v) { return this.x * v.y - this.y * v.x; }
+            static zero() { return new Vector2D(0, 0); }
+            copy() { return new Vector2D(this.x, this.y); }
+        }
+
+        const AppState = {
+            isAttraction: true,
+            n: 1,
+            A: 40.0,
+            m: 1.0,
+            dt: 0.005, // Small dt
+
+            initialPos: new Vector2D(2.0, 0),
+            initialVel: new Vector2D(0, 3.0),
+
+            isPlaying: false,
+            stepIndex: 0,
+            maxSteps: 20000,
+
+            trajectory: [],
+
+            pixelsPerMeter: 50,
+            zoom: 1.0,
+            width: 0,
+            height: 0,
+
+            strobeInterval: 20,
+            drawLimit: 20000,
+            playbackSpeed: 0.3,
+            showAreaVelocity: false,
+
+            // Pan offsets (Added for Dragging)
+            offsetX: 0,
+            offsetY: 0,
+        };
+
+        class PhysicsEngine {
+            static getForceCoefficient() {
+                return AppState.isAttraction ? -Math.abs(AppState.A) : Math.abs(AppState.A);
+            }
+
+            static calculateForce(pos) {
+                const r = pos.mag();
+                if (r < 1e-6) return Vector2D.zero();
+
+                const A_eff = this.getForceCoefficient();
+                // F = A * r^n * (r_hat) = A * r^(n-1) * pos
+                const factor = A_eff * Math.pow(r, AppState.n - 1);
+                return pos.mult(factor);
+            }
+
+            static calculateEnergy(pos, vel) {
+                const r = pos.mag();
+                const v = vel.mag();
+                const K = 0.5 * AppState.m * v * v;
+                let U = 0;
+                const A_eff = this.getForceCoefficient();
+
+                if (Math.abs(AppState.n + 1) < 1e-6) { // n = -1 case
+                    U = -A_eff * Math.log(r);
+                } else { // General case, including n = -2 (Gravity)
+                    U = -(A_eff / (AppState.n + 1)) * Math.pow(r, AppState.n + 1);
+                }
+                return { total: K + U, K, U };
+            }
+
+            static calculateAngularMomentum(pos, vel) {
+                return AppState.m * pos.cross(vel);
+            }
+
+            // Reverted to Symplectic Euler (1st Order)
+            static step(pos, vel, dt) {
+                // v_{n+1} = v_n + a(r_n) * dt
+                const force = this.calculateForce(pos);
+                const acc = force.div(AppState.m);
+                const newVel = vel.add(acc.mult(dt));
+
+                // r_{n+1} = r_n + v_{n+1} * dt
+                const newPos = pos.add(newVel.mult(dt));
+
+                return { pos: newPos, vel: newVel };
+            }
+        }
+
+        class TrajectoryManager {
+            static calculateAll() {
+                AppState.trajectory = [];
+                let p = AppState.initialPos.copy();
+                let v = AppState.initialVel.copy();
+                let t = 0;
+
+                const boundary = 200.0;
+
+                // Initial
+                const e0 = PhysicsEngine.calculateEnergy(p, v);
+                const l0 = PhysicsEngine.calculateAngularMomentum(p, v);
+                AppState.trajectory.push({
+                    pos: p, vel: v, time: t, E: e0.total, L: l0
+                });
+
+                for (let i = 0; i < AppState.maxSteps; i++) {
+                    const next = PhysicsEngine.step(p, v, AppState.dt);
+                    p = next.pos;
+                    v = next.vel;
+                    t += AppState.dt;
+
+                    // Energy calc
+                    const e = PhysicsEngine.calculateEnergy(p, v);
+                    const l = PhysicsEngine.calculateAngularMomentum(p, v);
+
+                    AppState.trajectory.push({
+                        pos: p, vel: v, time: t, E: e.total, L: l
+                    });
+
+                    if (p.mag() > boundary) break;
+                }
+
+                this.calculateStats();
+            }
+
+            static calculateStats() {
+                if (AppState.trajectory.length === 0) return;
+
+                let minR = Infinity;
+                let maxR = -Infinity;
+
+                AppState.trajectory.forEach(s => {
+                    const r = s.pos.mag();
+                    if (r < minR) minR = r;
+                    if (r > maxR) maxR = r;
+                });
+
+                let peaks = [];
+                for (let i = 2; i < AppState.trajectory.length - 2; i++) {
+                    const rPrev = AppState.trajectory[i - 1].pos.mag();
+                    const rCurr = AppState.trajectory[i].pos.mag();
+                    const rNext = AppState.trajectory[i + 1].pos.mag();
+
+                    if (rCurr > rPrev && rCurr > rNext) {
+                        peaks.push(AppState.trajectory[i].time);
+                    }
+                }
+
+                let period = null;
+                if (peaks.length >= 2) {
+                    let sumDiff = 0;
+                    for (let k = 0; k < peaks.length - 1; k++) {
+                        sumDiff += (peaks[k + 1] - peaks[k]);
+                    }
+                    period = sumDiff / (peaks.length - 1);
+                }
+
+                document.getElementById('stat-rmin').innerText = minR.toFixed(2);
+
+                if (maxR > 100) {
+                    document.getElementById('stat-rmax').innerText = ">100";
+                    document.getElementById('stat-ravg').innerText = "-";
+                    document.getElementById('stat-period').innerText = "-";
+                } else {
+                    document.getElementById('stat-rmax').innerText = maxR.toFixed(2);
+                    document.getElementById('stat-ravg').innerText = ((minR + maxR) / 2).toFixed(2);
+                    document.getElementById('stat-period').innerText = period ? period.toFixed(2) : "-";
+                }
+            }
+        }
+
+        class Coord {
+            static worldToScreen(worldPos) {
+                // Incorporate Pan Offsets
+                const cx = (AppState.width / 2) + AppState.offsetX;
+                const cy = (AppState.height / 2) + AppState.offsetY;
+                const scale = AppState.pixelsPerMeter * AppState.zoom;
+
+                return {
+                    x: cx + worldPos.x * scale,
+                    y: cy - worldPos.y * scale
+                };
+            }
+        }
+
+        class Renderer {
+            constructor() {
+                this.canvasGrid = document.getElementById('canvas-grid');
+                this.ctxGrid = this.canvasGrid.getContext('2d');
+                this.canvasStrobe = document.getElementById('canvas-strobe');
+                this.ctxStrobe = this.canvasStrobe.getContext('2d');
+                this.canvasMain = document.getElementById('canvas-main');
+                this.ctxMain = this.canvasMain.getContext('2d');
+
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                const container = document.getElementById('orbit-container');
+                AppState.width = container.clientWidth;
+                AppState.height = container.clientHeight;
+
+                [this.canvasGrid, this.canvasStrobe, this.canvasMain].forEach(cvs => {
+                    cvs.width = AppState.width;
+                    cvs.height = AppState.height;
+                });
+
+                this.drawGrid();
+                this.drawStaticPreview();
+                if (AppState.isPlaying) this.drawCurrentFrame();
+            }
+
+            clear(ctx) { ctx.clearRect(0, 0, AppState.width, AppState.height); }
+
+            drawGrid() {
+                const ctx = this.ctxGrid;
+                this.clear(ctx);
+                const w = AppState.width;
+                const h = AppState.height;
+                // Respect Pan Offsets
+                const cx = (w / 2) + AppState.offsetX;
+                const cy = (h / 2) + AppState.offsetY;
+
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                // Crosshair
+                ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+                ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+                ctx.stroke();
+
+                const ppm = AppState.pixelsPerMeter * AppState.zoom;
+                // Ensure circle coverage even when panned
+                const maxDim = Math.max(w, h);
+                const maxR = (maxDim / ppm) * 2 + Math.abs(AppState.offsetX / ppm) + Math.abs(AppState.offsetY / ppm);
+
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
+                for (let r = 1; r < maxR; r++) {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, r * ppm, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.fillStyle = '#f8fafc';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawStaticPreview() {
+                this.clear(this.ctxStrobe);
+                const ctx = this.ctxStrobe;
+
+                const limit = AppState.drawLimit;
+
+                if (!AppState.isPlaying) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+                    ctx.lineWidth = 2;
+
+                    let count = 0;
+                    for (let i = 0; i < AppState.trajectory.length; i++) {
+                        if (i > limit) break;
+                        const sc = Coord.worldToScreen(AppState.trajectory[i].pos);
+                        if (i === 0) ctx.moveTo(sc.x, sc.y);
+                        else ctx.lineTo(sc.x, sc.y);
+                    }
+                    ctx.stroke();
+                }
+
+                const interval = AppState.strobeInterval;
+
+                // Restore Area Velocity on Redraw
+                if (AppState.showAreaVelocity) {
+                    ctx.fillStyle = 'rgba(236, 72, 153, 0.2)';
+                    ctx.strokeStyle = 'rgba(236, 72, 153, 0.4)';
+
+                    const maxIdx = AppState.stepIndex > 0 ? AppState.stepIndex : 0;
+
+                    for (let i = interval; i <= maxIdx; i += interval) {
+                        if (i > AppState.trajectory.length - 1) break;
+
+                        const prev = AppState.trajectory[i - interval];
+                        const curr = AppState.trajectory[i];
+                        const prevPos = Coord.worldToScreen(prev.pos);
+                        const currPos = Coord.worldToScreen(curr.pos);
+                        const origin = Coord.worldToScreen(Vector2D.zero());
+
+                        ctx.beginPath();
+                        ctx.moveTo(origin.x, origin.y);
+                        ctx.lineTo(prevPos.x, prevPos.y);
+                        ctx.lineTo(currPos.x, currPos.y);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                for (let i = 0; i < AppState.trajectory.length; i++) {
+                    if (i > limit) break;
+                    if (i % interval === 0) {
+                        const sc = Coord.worldToScreen(AppState.trajectory[i].pos);
+                        ctx.beginPath();
+                        ctx.arc(sc.x, sc.y, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+
+            drawCurrentFrame() {
+                this.clear(this.ctxMain);
+                const ctx = this.ctxMain;
+
+                if (!AppState.trajectory[AppState.stepIndex]) return;
+
+                const current = AppState.trajectory[AppState.stepIndex];
+                const sc = Coord.worldToScreen(current.pos);
+
+                // Particle
+                ctx.fillStyle = '#38bdf8';
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(sc.x, sc.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Area Velocity (Animation Logic)
+                if (AppState.showAreaVelocity && AppState.stepIndex > 0) {
+                    const interval = AppState.strobeInterval;
+                    if (AppState.stepIndex % interval === 0) {
+                        const prevIndex = AppState.stepIndex - interval;
+                        if (prevIndex >= 0) {
+                            const prev = AppState.trajectory[prevIndex];
+                            const prevPos = Coord.worldToScreen(prev.pos);
+                            const currPos = Coord.worldToScreen(current.pos);
+                            const origin = Coord.worldToScreen(Vector2D.zero());
+
+                            const ctxS = this.ctxStrobe;
+                            ctxS.fillStyle = 'rgba(236, 72, 153, 0.2)';
+                            ctxS.strokeStyle = 'rgba(236, 72, 153, 0.4)';
+                            ctxS.beginPath();
+                            ctxS.moveTo(origin.x, origin.y);
+                            ctxS.lineTo(prevPos.x, prevPos.y);
+                            ctxS.lineTo(currPos.x, currPos.y);
+                            ctxS.closePath();
+                            ctxS.fill();
+                            ctxS.stroke();
+                        }
+                    }
+                }
+            }
+        }
+
+        class GraphPlotter {
+            constructor() {
+                this.gx = document.getElementById('graph-x');
+                this.ge = document.getElementById('graph-e');
+                this.gl = document.getElementById('graph-l');
+                this.ctxX = this.gx.getContext('2d');
+                this.ctxE = this.ge.getContext('2d');
+                this.ctxL = this.gl.getContext('2d');
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                [this.gx, this.ge, this.gl].forEach(c => {
+                    c.width = c.parentElement.clientWidth;
+                    c.height = c.parentElement.clientHeight;
+                });
+                this.drawAll();
+            }
+
+            drawAll() {
+                this.drawGraph(this.ctxX, AppState.trajectory, (s) => s.pos.mag(), '#38bdf8');
+
+                // User Request: Fix E-t graph scale to avoid amplifying small errors.
+                // We use max Kinetic Energy as a reference scale.
+                let maxK = 0;
+                // We can estimate max K roughly or scan. Since we scan for min/max anyway inside drawGraph, 
+                // we scan here for K. 
+                // Optimization: simple loop.
+                for (let i = 0; i < AppState.trajectory.length; i += 10) { // Sampling is enough for scale
+                    const s = AppState.trajectory[i];
+                    const v = s.vel.mag();
+                    const k = 0.5 * AppState.m * v * v;
+                    if (k > maxK) maxK = k;
+                }
+                const minEScale = maxK > 1e-9 ? maxK : 1.0;
+
+                this.drawGraph(this.ctxE, AppState.trajectory, (s) => s.E, '#22c55e', minEScale);
+                this.drawGraph(this.ctxL, AppState.trajectory, (s) => s.L, '#eab308');
+            }
+
+            drawGraph(ctx, data, valueFn, color, minRange = 0) {
+                const w = ctx.canvas.width;
+                const h = ctx.canvas.height;
+                ctx.clearRect(0, 0, w, h);
+                if (data.length === 0) return;
+
+                let min = Infinity, max = -Infinity;
+                data.forEach(s => {
+                    const v = valueFn(s);
+                    if (v < min) min = v;
+                    if (v > max) max = v;
+                });
+
+                // Apply minimum range to prevent noise amplification
+                if ((max - min) < minRange) {
+                    const mid = (min + max) / 2;
+                    min = mid - minRange / 2;
+                    max = mid + minRange / 2;
+                }
+
+                if (Math.abs(max - min) < 1e-6) { max += 0.5; min -= 0.5; }
+
+                const range = max - min;
+                const padding = 10;
+                const drawH = h - padding * 2;
+                const totalSteps = data.length;
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+
+                for (let i = 0; i < totalSteps; i++) {
+                    const s = data[i];
+                    const val = valueFn(s);
+                    const x = (i / Math.max(totalSteps - 1, 1)) * w;
+                    const y = h - (padding + ((val - min) / range) * drawH);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                if (AppState.isPlaying || AppState.stepIndex > 0) {
+                    const xCur = (AppState.stepIndex / Math.max(totalSteps - 1, 1)) * w;
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(xCur, 0);
+                    ctx.lineTo(xCur, h);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Logic
+        const renderer = new Renderer();
+        const grapher = new GraphPlotter();
+
+        function updateSimulation() {
+            AppState.n = parseFloat(document.getElementById('inp-n').value);
+            AppState.A = parseFloat(document.getElementById('inp-A').value);
+            AppState.m = parseFloat(document.getElementById('inp-m').value);
+            AppState.dt = parseFloat(document.getElementById('inp-dt').value);
+
+            const x0 = parseFloat(document.getElementById('inp-x0').value);
+            const y0 = parseFloat(document.getElementById('inp-y0').value);
+            AppState.initialPos = new Vector2D(x0, y0);
+
+            const vx0 = parseFloat(document.getElementById('inp-vx0').value);
+            const vy0 = parseFloat(document.getElementById('inp-vy0').value);
+            AppState.initialVel = new Vector2D(vx0, vy0);
+
+            AppState.showAreaVelocity = document.getElementById('chk-area-velocity').checked;
+            AppState.strobeInterval = parseInt(document.getElementById('inp-strobe').value);
+            AppState.playbackSpeed = parseFloat(document.getElementById('inp-speed').value);
+            AppState.drawLimit = parseInt(document.getElementById('inp-limit').value);
+
+            // Zoom is handled separately via event listener usually, but here we can read it too
+            // However, changing params recalculates trajectory. changing zoom only needs redraw.
+
+            TrajectoryManager.calculateAll();
+
+            renderer.drawStaticPreview();
+            grapher.drawAll();
+        }
+
+        function reset() {
+            AppState.isPlaying = false;
+            AppState.stepIndex = 0;
+            document.getElementById('btn-anim-toggle').innerText = "アニメーション開始";
+
+            renderer.clear(renderer.ctxMain);
+            renderer.drawStaticPreview();
+            grapher.drawAll();
+        }
+
+        function toggleAnimation() {
+            if (AppState.isPlaying) {
+                AppState.isPlaying = false;
+                document.getElementById('btn-anim-toggle').innerText = "アニメーション開始";
+            } else {
+                if (AppState.stepIndex >= AppState.trajectory.length - 1) {
+                    AppState.stepIndex = 0;
+                    renderer.clear(renderer.ctxStrobe);
+                } else {
+                    if (AppState.stepIndex === 0) renderer.clear(renderer.ctxStrobe);
+                }
+                AppState.isPlaying = true;
+                document.getElementById('btn-anim-toggle').innerText = "一時停止";
+                requestAnimationFrame(animate);
+            }
+        }
+
+        function animate() {
+            if (!AppState.isPlaying) return;
+
+            const baseSteps = 40;
+            const effectiveSteps = baseSteps * AppState.playbackSpeed;
+
+            let loopCount = Math.floor(effectiveSteps);
+            let remainder = effectiveSteps - loopCount;
+            if (Math.random() < remainder) loopCount++;
+
+            for (let k = 0; k < loopCount; k++) {
+                if (AppState.stepIndex < AppState.trajectory.length - 1) {
+                    AppState.stepIndex++;
+                } else {
+                    AppState.isPlaying = false;
+                    document.getElementById('btn-anim-toggle').innerText = "アニメーション開始";
+                    break;
+                }
+            }
+
+            renderer.drawCurrentFrame();
+            grapher.drawAll();
+
+            if (AppState.isPlaying) requestAnimationFrame(animate);
+        }
+
+        function autoFit() {
+            let maxR = 0;
+            AppState.trajectory.forEach(s => {
+                const r = s.pos.mag();
+                if (r > maxR) maxR = r;
+            });
+            if (maxR > 500) maxR = 20;
+            if (maxR === 0) maxR = 5;
+
+            const screenMin = Math.min(AppState.width, AppState.height);
+            const padding = 50;
+
+            const ppm = (screenMin / 2 - padding) / maxR;
+
+            let newZoom = ppm / 50.0;
+            newZoom = Math.min(Math.max(newZoom, 0.1), 20.0);
+
+
+            // Reset panning on Autofit?
+            AppState.offsetX = 0;
+            AppState.offsetY = 0;
+
+            AppState.zoom = newZoom;
+
+            // Update UI
+            document.getElementById('inp-zoom').value = newZoom;
+            document.getElementById('zoom-val').innerText = newZoom.toFixed(1) + "x";
+
+            renderer.drawStaticPreview();
+            if (AppState.isPlaying) renderer.drawCurrentFrame();
+        }
+
+        // Events
+        document.querySelectorAll('input').forEach(el => {
+            el.addEventListener('input', (e) => {
+                if (e.target.id === 'inp-n') {
+                    reset();
+                    updateSimulation();
+                } else if (e.target.id === 'inp-strobe') {
+                    document.getElementById('strobe-val').innerText = e.target.value;
+                    AppState.strobeInterval = parseInt(e.target.value);
+                    renderer.drawStaticPreview();
+                } else if (e.target.id === 'inp-limit') {
+                    const val = e.target.value;
+                    document.getElementById('limit-val').innerText = val;
+                    AppState.drawLimit = parseInt(val);
+                    renderer.drawStaticPreview();
+                } else if (e.target.id === 'inp-speed') {
+                    document.getElementById('speed-val').innerText = e.target.value + "x";
+                    AppState.playbackSpeed = parseFloat(e.target.value);
+                } else if (e.target.id === 'inp-zoom') {
+                    // Zoom handling without recalculation
+                    const z = parseFloat(e.target.value);
+                    AppState.zoom = z;
+                    document.getElementById('zoom-val').innerText = z.toFixed(1) + "x";
+                    renderer.drawGrid();
+                    renderer.drawStaticPreview();
+                    if (AppState.isPlaying) renderer.drawCurrentFrame();
+                } else {
+                    reset();
+                    updateSimulation();
+                }
+            });
+        });
+
+        // Wheel Zoom
+        document.getElementById('orbit-container').addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = -Math.sign(e.deltaY) * 0.1;
+            let newZoom = AppState.zoom + delta;
+            newZoom = Math.min(Math.max(newZoom, 0.1), 5.0);
+
+            AppState.zoom = newZoom;
+            document.getElementById('inp-zoom').value = newZoom;
+            document.getElementById('zoom-val').innerText = newZoom.toFixed(1) + "x";
+
+            renderer.drawGrid();
+            renderer.drawStaticPreview();
+            if (AppState.isPlaying) renderer.drawCurrentFrame();
+        }, { passive: false });
+
+        // Pan / Drag Implementation
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        const orbitContainer = document.getElementById('orbit-container');
+        orbitContainer.style.cursor = 'grab';
+
+        orbitContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            orbitContainer.style.cursor = 'grabbing';
+            e.preventDefault(); // Prevent text selection
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastMouseX;
+            const dy = e.clientY - lastMouseY;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+
+            AppState.offsetX += dx;
+            AppState.offsetY += dy;
+
+            renderer.drawGrid();
+            renderer.drawStaticPreview();
+            if (AppState.isPlaying || AppState.stepIndex > 0) {
+                renderer.drawCurrentFrame();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                orbitContainer.style.cursor = 'grab';
+            }
+        });
+
+        // Touch Support for Pan
+        orbitContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastMouseX = e.touches[0].clientX;
+                lastMouseY = e.touches[0].clientY;
+                e.preventDefault(); // Prevent default browser scroll/zoom
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - lastMouseX;
+            const dy = e.touches[0].clientY - lastMouseY;
+            lastMouseX = e.touches[0].clientX;
+            lastMouseY = e.touches[0].clientY;
+
+            AppState.offsetX += dx;
+            AppState.offsetY += dy;
+
+            renderer.drawGrid();
+            renderer.drawStaticPreview();
+            if (AppState.isPlaying || AppState.stepIndex > 0) {
+                renderer.drawCurrentFrame();
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        document.getElementById('btn-attract').addEventListener('click', () => {
+            AppState.isAttraction = true;
+            document.getElementById('btn-attract').classList.add('active');
+            document.getElementById('btn-repulse').classList.remove('active');
+            document.getElementById('formula-display').innerText = "F = -|A|rⁿ";
+            reset();
+            updateSimulation();
+        });
+
+        document.getElementById('btn-repulse').addEventListener('click', () => {
+            AppState.isAttraction = false;
+            document.getElementById('btn-repulse').classList.add('active');
+            document.getElementById('btn-attract').classList.remove('active');
+            document.getElementById('formula-display').innerText = "F = +|A|rⁿ";
+            reset();
+            updateSimulation();
+        });
+
+        document.getElementById('btn-anim-toggle').addEventListener('click', toggleAnimation);
+        document.getElementById('btn-reset').addEventListener('click', reset);
+        document.getElementById('btn-autofit').addEventListener('click', autoFit);
+
+        // Init
+        setTimeout(() => {
+            renderer.resize();
+            grapher.resize();
+            updateSimulation();
+        }, 200);
+
+    </script>
+</body>
+
+</html>
