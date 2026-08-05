@@ -23,6 +23,8 @@
             color: var(--text-color);
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             height: 100vh;
+            /* iOS Safari のアドレスバー伸縮でレイアウトが崩れるのを防ぐ */
+            height: 100dvh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -140,10 +142,83 @@
             font-weight: 600;
             cursor: pointer;
             transition: opacity 0.2s;
+            /* ダブルタップズームを無効化（ピンチズームは残す） */
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn:hover {
             opacity: 0.9;
+        }
+
+        /* ステッパー（＋／−）
+           連打時のダブルタップズーム対策として touch-action: manipulation を必須にし、
+           タッチターゲットは 44px 以上を確保する */
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .step-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            padding: 0;
+            font-size: 1.25rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .step-btn:active {
+            background: var(--accent-color);
+            color: #0f172a;
+        }
+
+        .step-btn:disabled {
+            opacity: 0.35;
+            border-color: var(--border-color);
+            color: #64748b;
+        }
+
+        .stepper input[type="number"] {
+            width: 72px;
+            text-align: center;
+            height: 40px;
+        }
+
+        /* 数値入力のスピナーはスマホでは邪魔になるため非表示 */
+        .stepper input[type="number"]::-webkit-outer-spin-button,
+        .stepper input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .stepper input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .param-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
         }
 
         .btn-outline {
@@ -187,6 +262,7 @@
             display: grid;
             grid-template-rows: 2fr 1fr;
             height: 60vh;
+            height: 60dvh;
             min-height: 350px;
             flex-shrink: 0;
             order: -1;
@@ -199,6 +275,10 @@
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
             overflow: hidden;
             cursor: grab;
+            /* 指ドラッグ・ピンチを自前で処理するためブラウザ既定動作を無効化 */
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #orbit-container:active {
@@ -314,36 +394,44 @@
         <div class="control-group">
             <label class="control-label">パラメータ (SI Units)</label>
             <div class="flex flex-col gap-3">
-                <div class="flex justify-between items-center">
+                <div class="param-row">
                     <span class="text-sm">指数 n</span>
-                    <div class="flex items-center gap-1">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-n', -0.5)">-</button>
-                        <input type="number" id="inp-n" value="1.0" step="0.5" style="width: 65px; text-align: center;">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-n', 0.5)">+</button>
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-n" data-step="-0.5"
+                            aria-label="指数 n を減らす">−</button>
+                        <input type="number" id="inp-n" value="1.0" step="0.5" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-n" data-step="0.5"
+                            aria-label="指数 n を増やす">+</button>
                     </div>
                 </div>
-                <div class="flex justify-between items-center">
+                <div class="param-row">
                     <span class="text-sm">係数 A</span>
-                    <div class="flex items-center gap-1">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-A', -1.0)">-</button>
-                        <input type="number" id="inp-A" value="25.0" step="1.0" style="width: 65px; text-align: center;">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-A', 1.0)">+</button>
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-A" data-step="-1.0"
+                            aria-label="係数 A を減らす">−</button>
+                        <input type="number" id="inp-A" value="25.0" step="1.0" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-A" data-step="1.0"
+                            aria-label="係数 A を増やす">+</button>
                     </div>
                 </div>
-                <div class="flex justify-between items-center">
+                <div class="param-row">
                     <span class="text-sm">質量 m (kg)</span>
-                    <div class="flex items-center gap-1">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-m', -0.2)">-</button>
-                        <input type="number" id="inp-m" value="1.0" step="0.2" style="width: 65px; text-align: center;">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-m', 0.2)">+</button>
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-m" data-step="-0.2"
+                            aria-label="質量 m を減らす">−</button>
+                        <input type="number" id="inp-m" value="1.0" step="0.2" min="0.1" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-m" data-step="0.2"
+                            aria-label="質量 m を増やす">+</button>
                     </div>
                 </div>
-                <div class="flex justify-between items-center">
+                <div class="param-row">
                     <span class="text-sm">刻み時間 dt</span>
-                    <div class="flex items-center gap-1">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-dt', -0.001)">-</button>
-                        <input type="number" id="inp-dt" value="0.001" step="0.001" style="width: 65px; text-align: center;">
-                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem;" onclick="stepInput('inp-dt', 0.001)">+</button>
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-dt" data-step="-0.001"
+                            aria-label="刻み時間 dt を減らす">−</button>
+                        <input type="number" id="inp-dt" value="0.001" step="0.001" min="0.0005" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-dt" data-step="0.001"
+                            aria-label="刻み時間 dt を増やす">+</button>
                     </div>
                 </div>
             </div>
@@ -351,18 +439,46 @@
 
         <div class="control-group">
             <label class="control-label">初期状態 (Initial State)</label>
-            <div class="flex flex-col gap-2">
-                <div class="flex justify-between items-center">
+            <div class="flex flex-col gap-3">
+                <div class="param-row">
                     <span class="text-sm">x₀ (m)</span>
-                    <input type="number" id="inp-x0" value="2.0" step="0.1" style="width: 60px;">
-                    <span class="text-sm">y₀ (m)</span>
-                    <input type="number" id="inp-y0" value="0.0" step="0.1" style="width: 60px;">
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-x0" data-step="-0.1"
+                            aria-label="x0 を減らす">−</button>
+                        <input type="number" id="inp-x0" value="2.0" step="0.1" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-x0" data-step="0.1"
+                            aria-label="x0 を増やす">+</button>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center">
+                <div class="param-row">
+                    <span class="text-sm">y₀ (m)</span>
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-y0" data-step="-0.1"
+                            aria-label="y0 を減らす">−</button>
+                        <input type="number" id="inp-y0" value="0.0" step="0.1" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-y0" data-step="0.1"
+                            aria-label="y0 を増やす">+</button>
+                    </div>
+                </div>
+                <div class="param-row">
                     <span class="text-sm">vx₀ (m/s)</span>
-                    <input type="number" id="inp-vx0" value="0.0" step="0.1" style="width: 60px;">
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-vx0" data-step="-0.1"
+                            aria-label="vx0 を減らす">−</button>
+                        <input type="number" id="inp-vx0" value="0.0" step="0.1" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-vx0" data-step="0.1"
+                            aria-label="vx0 を増やす">+</button>
+                    </div>
+                </div>
+                <div class="param-row">
                     <span class="text-sm">vy₀ (m/s)</span>
-                    <input type="number" id="inp-vy0" value="3.0" step="0.1" style="width: 60px;">
+                    <div class="stepper">
+                        <button type="button" class="step-btn" data-step-target="inp-vy0" data-step="-0.1"
+                            aria-label="vy0 を減らす">−</button>
+                        <input type="number" id="inp-vy0" value="3.0" step="0.1" inputmode="decimal">
+                        <button type="button" class="step-btn" data-step-target="inp-vy0" data-step="0.1"
+                            aria-label="vy0 を増やす">+</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -374,7 +490,7 @@
                     <span class="text-sm">ズーム (Zoom)</span>
                     <span id="zoom-val" class="text-xs text-muted">1.0x</span>
                 </div>
-                <input type="range" id="inp-zoom" min="0.1" max="5.0" step="0.1" value="1.0">
+                <input type="range" id="inp-zoom" min="0.1" max="20.0" step="0.1" value="1.0">
 
                 <div class="flex justify-between items-center mt-2">
                     <span class="text-sm">ストロボ間隔 (Step)</span>
@@ -386,7 +502,7 @@
                     <span class="text-sm">描画制限 (点数)</span>
                     <span id="limit-val" class="text-xs text-muted">All</span>
                 </div>
-                <input type="range" id="inp-limit" min="100" max="10000" step="100" value="10000">
+                <input type="range" id="inp-limit" min="100" max="20000" step="100" value="20000">
                 <p class="text-xs text-muted" style="margin:-4px 0 0 0;">※ 1周分のみ表示したい場合に調整</p>
 
                 <div class="flex justify-between items-center mt-2">
@@ -819,9 +935,13 @@
             }
 
             drawAll() {
-                const xValues = AppState.trajectory.map((s) => s.pos.x);
                 const initialAbsX = Math.abs(AppState.initialPos.x);
-                const observedMaxAbsX = xValues.length > 0 ? Math.max(...xValues.map((x) => Math.abs(x))) : initialAbsX;
+                // Math.max(...array) は 2 万要素だと引数上限に触れて RangeError の恐れがあるためループで求める
+                let observedMaxAbsX = initialAbsX;
+                for (let i = 0; i < AppState.trajectory.length; i++) {
+                    const ax = Math.abs(AppState.trajectory[i].pos.x);
+                    if (ax > observedMaxAbsX) observedMaxAbsX = ax;
+                }
                 const xScaleMax = Math.max(initialAbsX * 1.2, observedMaxAbsX * 1.05, 1.0);
 
                 // x(t) は y 軸中心の対称スケールで描画し、
@@ -910,35 +1030,126 @@
         const renderer = new Renderer();
         const grapher = new GraphPlotter();
 
+        // ---- 入力値の許容範囲 ----------------------------------------
+        // dt や m が 0 以下になると軌道が停止・逆行・発散するため下限を設ける。
+        const INPUT_LIMITS = {
+            'inp-n': { min: -10, max: 10, fallback: 1.0 },
+            'inp-A': { min: -1000, max: 1000, fallback: 25.0 },
+            'inp-m': { min: 0.1, max: 1000, fallback: 1.0 },
+            'inp-dt': { min: 0.0005, max: 0.05, fallback: 0.001 },
+            'inp-x0': { min: -100, max: 100, fallback: 2.0 },
+            'inp-y0': { min: -100, max: 100, fallback: 0.0 },
+            'inp-vx0': { min: -100, max: 100, fallback: 0.0 },
+            'inp-vy0': { min: -100, max: 100, fallback: 3.0 },
+        };
+
+        // 入力欄を読む唯一の窓口。空欄・NaN・範囲外を安全な値に丸める。
+        function readInput(id) {
+            const el = document.getElementById(id);
+            const lim = INPUT_LIMITS[id] || { min: -Infinity, max: Infinity, fallback: 0 };
+            const raw = parseFloat(el ? el.value : NaN);
+            if (!Number.isFinite(raw)) return lim.fallback;
+            return Math.min(Math.max(raw, lim.min), lim.max);
+        }
+
+        function decimalsOf(step) {
+            const s = Math.abs(step).toString();
+            if (s.includes('e-')) return parseInt(s.split('e-')[1], 10);
+            return s.includes('.') ? s.split('.')[1].length : 0;
+        }
+
         function stepInput(id, delta) {
             const el = document.getElementById(id);
             if (!el) return;
-            let val = parseFloat(el.value) + delta;
-            
-            // 刻み幅に応じて小数点以下の桁数を決定
-            const deltaStr = Math.abs(delta).toString();
-            let decimals = 0;
-            if (deltaStr.includes('.')) {
-                decimals = deltaStr.split('.')[1].length;
-            }
-            
+            const lim = INPUT_LIMITS[id] || { min: -Infinity, max: Infinity, fallback: 0 };
+
+            const current = Number.isFinite(parseFloat(el.value)) ? parseFloat(el.value) : lim.fallback;
+            let val = current + delta;
+            val = Math.min(Math.max(val, lim.min), lim.max);
+
+            // 浮動小数の誤差蓄積（0.1+0.2=0.30000000000000004）を刻み幅の桁で丸める
+            const decimals = Math.max(decimalsOf(delta), decimalsOf(lim.min));
             el.value = val.toFixed(decimals);
+
+            refreshStepButtons();
             el.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
+        // 上限・下限に達したボタンを無効化して、押しても何も起きない理由を可視化する
+        function refreshStepButtons() {
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                const id = btn.dataset.stepTarget;
+                const delta = parseFloat(btn.dataset.step);
+                const lim = INPUT_LIMITS[id];
+                if (!lim) return;
+                const el = document.getElementById(id);
+                const cur = Number.isFinite(parseFloat(el.value)) ? parseFloat(el.value) : lim.fallback;
+                btn.disabled = delta > 0 ? cur >= lim.max - 1e-9 : cur <= lim.min + 1e-9;
+            });
+        }
+
+        // ---- ＋／− のタップ処理 ---------------------------------------
+        // ダブルタップズームとの競合対策:
+        //   (1) CSS の touch-action: manipulation でブラウザ側のダブルタップ拡大を殺す
+        //   (2) pointerdown で即座に反応させ、click の 300ms 待ちを回避する
+        //   (3) 長押しで連続増減できるようにし、そもそも連打を不要にする
+        (function setupSteppers() {
+            const HOLD_DELAY = 400;   // 長押し判定までの時間
+            const REPEAT_MS = 90;     // リピート間隔
+
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                let holdTimer = null;
+                let repeatTimer = null;
+
+                const id = btn.dataset.stepTarget;
+                const delta = parseFloat(btn.dataset.step);
+
+                const stop = () => {
+                    clearTimeout(holdTimer);
+                    clearInterval(repeatTimer);
+                    holdTimer = null;
+                    repeatTimer = null;
+                };
+
+                btn.addEventListener('pointerdown', (e) => {
+                    if (e.button !== undefined && e.button !== 0) return;
+                    // ズーム・スクロール・フォーカス移動などの既定動作を抑止
+                    e.preventDefault();
+                    if (btn.disabled) return;
+
+                    stepInput(id, delta);
+
+                    holdTimer = setTimeout(() => {
+                        repeatTimer = setInterval(() => {
+                            if (btn.disabled) { stop(); return; }
+                            stepInput(id, delta);
+                        }, REPEAT_MS);
+                    }, HOLD_DELAY);
+                });
+
+                ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
+                    btn.addEventListener(ev, stop)
+                );
+
+                // pointerdown で処理済みなので、後続の click は握り潰す（二重発火防止）
+                btn.addEventListener('click', (e) => e.preventDefault());
+            });
+
+            window.addEventListener('blur', () => {
+                document.querySelectorAll('.step-btn').forEach(b => b.dispatchEvent(new Event('pointercancel')));
+            });
+        })();
+
         function updateSimulation() {
-            AppState.n = parseFloat(document.getElementById('inp-n').value);
-            AppState.A = parseFloat(document.getElementById('inp-A').value);
-            AppState.m = parseFloat(document.getElementById('inp-m').value);
-            AppState.dt = parseFloat(document.getElementById('inp-dt').value);
+            // readInput が空欄・NaN・範囲外をすべて吸収するので、
+            // ここから先に不正値が流れ込むことはない。
+            AppState.n = readInput('inp-n');
+            AppState.A = readInput('inp-A');
+            AppState.m = readInput('inp-m');
+            AppState.dt = readInput('inp-dt');
 
-            const x0 = parseFloat(document.getElementById('inp-x0').value);
-            const y0 = parseFloat(document.getElementById('inp-y0').value);
-            AppState.initialPos = new Vector2D(x0, y0);
-
-            const vx0 = parseFloat(document.getElementById('inp-vx0').value);
-            const vy0 = parseFloat(document.getElementById('inp-vy0').value);
-            AppState.initialVel = new Vector2D(vx0, vy0);
+            AppState.initialPos = new Vector2D(readInput('inp-x0'), readInput('inp-y0'));
+            AppState.initialVel = new Vector2D(readInput('inp-vx0'), readInput('inp-vy0'));
 
             AppState.showAreaVelocity = document.getElementById('chk-area-velocity').checked;
             AppState.strobeInterval = parseInt(document.getElementById('inp-strobe').value);
@@ -952,10 +1163,6 @@
 
             renderer.drawStaticPreview();
             grapher.drawAll();
-        }
-
-        function autoSetA() {
-            // Removed
         }
 
         function reset() {
@@ -1025,71 +1232,83 @@
 
             const ppm = (screenMin / 2 - padding) / maxR;
 
-            let newZoom = ppm / 50.0;
-            newZoom = Math.min(Math.max(newZoom, 0.1), 20.0);
+            const newZoom = clampZoom(ppm / 50.0);
 
-
-            // Reset panning on Autofit?
+            // Reset panning on Autofit
             AppState.offsetX = 0;
             AppState.offsetY = 0;
 
-            AppState.zoom = newZoom;
+            // applyZoom 経由にすることで、スライダー表示と実際のズームが必ず一致する
+            applyZoom(newZoom);
+        }
 
-            // Update UI
-            document.getElementById('inp-zoom').value = newZoom;
-            document.getElementById('zoom-val').innerText = newZoom.toFixed(1) + "x";
-
-            renderer.drawStaticPreview();
-            if (AppState.isPlaying) renderer.drawCurrentFrame();
+        // 長押しリピート中は 90ms ごとに input が飛んでくる。
+        // 毎回 2 万ステップ計算すると端末が固まるので、入力が落ち着いてから 1 回だけ走らせる。
+        let recalcTimer = null;
+        function scheduleRecalc() {
+            clearTimeout(recalcTimer);
+            recalcTimer = setTimeout(() => {
+                reset();
+                updateSimulation();
+            }, 120);
         }
 
         // Events
         document.querySelectorAll('input').forEach(el => {
             el.addEventListener('input', (e) => {
-                if (e.target.id === 'inp-n') {
-                    reset();
-                    updateSimulation();
-                } else if (e.target.id === 'inp-strobe') {
+                if (e.target.id === 'inp-strobe') {
                     document.getElementById('strobe-val').innerText = e.target.value;
                     AppState.strobeInterval = parseInt(e.target.value);
                     renderer.drawStaticPreview();
                 } else if (e.target.id === 'inp-limit') {
-                    const val = e.target.value;
-                    document.getElementById('limit-val').innerText = val;
-                    AppState.drawLimit = parseInt(val);
+                    const val = parseInt(e.target.value);
+                    // 全点表示に達したときだけ "All"。それ以外は実際の点数を出す。
+                    document.getElementById('limit-val').innerText =
+                        val >= AppState.maxSteps ? 'All' : val;
+                    AppState.drawLimit = val;
                     renderer.drawStaticPreview();
                 } else if (e.target.id === 'inp-speed') {
                     document.getElementById('speed-val').innerText = e.target.value + "x";
                     AppState.playbackSpeed = parseFloat(e.target.value);
                 } else if (e.target.id === 'inp-zoom') {
-                    // Zoom handling without recalculation
-                    const z = parseFloat(e.target.value);
-                    AppState.zoom = z;
-                    document.getElementById('zoom-val').innerText = z.toFixed(1) + "x";
+                    // ズームは軌道の再計算が不要（描き直すだけ）
+                    AppState.zoom = clampZoom(parseFloat(e.target.value));
+                    document.getElementById('zoom-val').innerText = AppState.zoom.toFixed(1) + "x";
                     renderer.drawGrid();
                     renderer.drawStaticPreview();
-                    if (AppState.isPlaying) renderer.drawCurrentFrame();
+                    if (AppState.isPlaying || AppState.stepIndex > 0) renderer.drawCurrentFrame();
                 } else {
-                    reset();
-                    updateSimulation();
+                    // 数値パラメータ全般。連打・長押し時に 2 万ステップの再計算が
+                    // 積み上がらないよう間引く。
+                    scheduleRecalc();
                 }
             });
         });
 
+        // ズーム上限はスライダー・ホイール・ピンチ・autoFit で共通にする
+        const ZOOM_MIN = 0.1;
+        const ZOOM_MAX = 20.0;
+        function clampZoom(z) {
+            return Math.min(Math.max(z, ZOOM_MIN), ZOOM_MAX);
+        }
+
+        function applyZoom(z) {
+            AppState.zoom = clampZoom(z);
+            document.getElementById('inp-zoom').value = AppState.zoom;
+            document.getElementById('zoom-val').innerText = AppState.zoom.toFixed(1) + "x";
+            renderer.drawGrid();
+            renderer.drawStaticPreview();
+            if (AppState.isPlaying || AppState.stepIndex > 0) renderer.drawCurrentFrame();
+        }
+
         // Wheel Zoom
         document.getElementById('orbit-container').addEventListener('wheel', (e) => {
             e.preventDefault();
-            const delta = -Math.sign(e.deltaY) * 0.1;
-            let newZoom = AppState.zoom + delta;
-            newZoom = Math.min(Math.max(newZoom, 0.1), 5.0);
+            // 乗算式にすることで、拡大時も縮小時も体感の変化量が揃う
+            const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+            let newZoom = clampZoom(AppState.zoom * factor);
 
-            AppState.zoom = newZoom;
-            document.getElementById('inp-zoom').value = newZoom;
-            document.getElementById('zoom-val').innerText = newZoom.toFixed(1) + "x";
-
-            renderer.drawGrid();
-            renderer.drawStaticPreview();
-            if (AppState.isPlaying) renderer.drawCurrentFrame();
+            applyZoom(newZoom);
         }, { passive: false });
 
         // Pan / Drag Implementation
@@ -1132,6 +1351,72 @@
             }
         });
 
+        // ---- タッチ操作: 1本指でパン / 2本指でピンチズーム ----------------
+        // #orbit-container に touch-action: none を指定してあるため、
+        // ここでの preventDefault と合わせてブラウザ既定のスクロール・拡大を完全に止める。
+        (function setupTouchGestures() {
+            let touchMode = null;      // 'pan' | 'pinch'
+            let lastTouchX = 0;
+            let lastTouchY = 0;
+            let pinchStartDist = 0;
+            let pinchStartZoom = 1;
+
+            const distanceOf = (t) => Math.hypot(
+                t[0].clientX - t[1].clientX,
+                t[0].clientY - t[1].clientY
+            );
+
+            const redraw = () => {
+                renderer.drawGrid();
+                renderer.drawStaticPreview();
+                if (AppState.isPlaying || AppState.stepIndex > 0) renderer.drawCurrentFrame();
+            };
+
+            orbitContainer.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchMode = 'pan';
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    touchMode = 'pinch';
+                    pinchStartDist = distanceOf(e.touches);
+                    pinchStartZoom = AppState.zoom;
+                }
+                e.preventDefault();
+            }, { passive: false });
+
+            orbitContainer.addEventListener('touchmove', (e) => {
+                if (touchMode === 'pan' && e.touches.length === 1) {
+                    const t = e.touches[0];
+                    AppState.offsetX += t.clientX - lastTouchX;
+                    AppState.offsetY += t.clientY - lastTouchY;
+                    lastTouchX = t.clientX;
+                    lastTouchY = t.clientY;
+                    redraw();
+                } else if (touchMode === 'pinch' && e.touches.length === 2) {
+                    const d = distanceOf(e.touches);
+                    if (pinchStartDist > 0) {
+                        applyZoom(pinchStartZoom * (d / pinchStartDist));
+                    }
+                }
+                e.preventDefault();
+            }, { passive: false });
+
+            const endTouch = (e) => {
+                if (e.touches.length === 0) {
+                    touchMode = null;
+                } else if (e.touches.length === 1) {
+                    // ピンチ中に片方の指を離した場合、残った指でパンを継続する
+                    touchMode = 'pan';
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                }
+            };
+
+            orbitContainer.addEventListener('touchend', endTouch);
+            orbitContainer.addEventListener('touchcancel', endTouch);
+        })();
+
         document.getElementById('btn-attract').addEventListener('click', () => {
             AppState.isAttraction = true;
             document.getElementById('btn-attract').classList.add('active');
@@ -1159,7 +1444,14 @@
             renderer.resize();
             grapher.resize();
             updateSimulation();
+            refreshStepButtons();
         }, 200);
+
+        // iOS Safari はアドレスバーの伸縮で 100vh が変わるため、
+        // 表示領域が変わったタイミングで canvas を測り直す。
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => { renderer.resize(); grapher.resize(); }, 300);
+        });
 
     </script>
 </body>
